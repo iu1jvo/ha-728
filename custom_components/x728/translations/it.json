@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": " Setup del UPS X728 Geekworm",
+        "description": "Connessione al demone add-on X728 in esecuzione sul dispositivo corrente.",
+        "data": {
+          "host": "host del Demone",
+          "port": "porta del Daemone",
+          "scan_interval": "Intervallo di aggiornamento (secondi)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi al demone X728. Assicursi che l'add-on sia in esecuzione.",
+      "unknown": "Errore inatteso. Per maggiori informazioni controllare il log."
+    },
+    "abort": {
+      "already_configured": "Questa instanza X728 è già configurata."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni del UPS X728",
+        "data": {
+          "host": "host del Demone",
+          "port": "porta del Daemone",
+          "scan_interval": "Intervallo di aggiornamento (secondi)"
+        }
+      }
+    }
+  }
+}

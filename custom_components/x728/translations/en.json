@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Geekworm X728 UPS Setup",
+        "description": "Connect to the X728 daemon add-on running on this device.",
+        "data": {
+          "host": "Daemon host",
+          "port": "Daemon port",
+          "scan_interval": "Poll interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the X728 daemon. Make sure the add-on is running.",
+      "unknown": "Unexpected error. Check the logs."
+    },
+    "abort": {
+      "already_configured": "This X728 instance is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "X728 UPS Options",
+        "data": {
+          "host": "Daemon host",
+          "port": "Daemon port",
+          "scan_interval": "Poll interval (seconds)"
+        }
+      }
+    }
+  }
+}
