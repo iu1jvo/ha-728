@@ -3,8 +3,9 @@ name: Bump Version Files
 # Runs BEFORE the build workflow.
 # When you push a tag vX.Y.Z this workflow:
 #   1. Updates version in ha-addon-x728/config.yaml
-#   2. Commits the changes back to the branch that was tagged
-#   3. Moves the tag to point at the new commit
+#   2. Updates version in custom_components/x728/manifest.json
+#   3. Commits the changes back to the branch that was tagged
+#   4. Moves the tag to point at the new commit
 
 on:
   push:
@@ -71,6 +72,28 @@ jobs:
 
           print(f"config.yaml: {old} → {version}")
           EOF
+
+      - name: Bump custom_components/x728/manifest.json
+        run: |
+          python3 - <<'EOF'
+          import json
+       
+          path = "custom_components/x728/manifest.json"
+          version = "${{ steps.ver.outputs.version }}"
+      
+          with open(path) as f:
+              manifest = json.load(f)
+        
+          old = manifest.get("version", "?")
+          manifest["version"] = version
+      
+          with open(path, "w") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\n")   # trailing newline
+      
+          print(f"manifest.json: {old} → {version}")
+          EOF
+    
       - name: Commit bumped files
         run: |
           git config user.name  "github-actions[bot]"
