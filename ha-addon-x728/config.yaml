@@ -1,0 +1,71 @@
+name: "Geekworm X728 UPS Daemon"
+description: "Reads battery voltage, capacity and AC status from the Geekworm X728 UPS HAT and exposes them via a local REST API for the X728 integration."
+version: "1.0.0"
+slug: "x728_daemon"
+init: false
+arch:
+  - aarch64
+  - armv7
+
+# Hardware access
+privileged:
+  - SYS_RAWIO
+devices:
+  - /dev/i2c-1
+  - /dev/gpiomem
+
+# The integration connects here
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: "X728 REST API"
+
+# User-configurable options
+options:
+  hw_version: "v2.1"
+  daemon_port: 8099
+  poll_interval: 10
+  shutdown_voltage: 3.00
+  shutdown_capacity: 5
+  shutdown_delay: 10
+  buzzer_on_ac_loss: true
+
+schema:
+  hw_version:
+    description: "Hardware version (affects shutdown GPIO pin)"
+    type: select
+    options:
+      - "v1.x / v2.0"
+      - "v2.1"
+      - "v2.2"
+      - "v2.3"
+  daemon_port:
+    description: "Port the REST API listens on"
+    type: int
+    min: 1024
+    max: 65535
+  poll_interval:
+    description: "How often to read the hardware (seconds)"
+    type: int
+    min: 5
+    max: 120
+  shutdown_voltage:
+    description: "Trigger shutdown if battery voltage drops below this value (Volts). Set 0 to disable."
+    type: float
+    min: 0.0
+    max: 4.5
+  shutdown_capacity:
+    description: "Trigger shutdown if battery capacity drops below this percentage. Set 0 to disable."
+    type: int
+    min: 0
+    max: 50
+  shutdown_delay:
+    description: "Seconds to wait after issuing the HA shutdown command before cutting UPS power"
+    type: int
+    min: 5
+    max: 120
+  buzzer_on_ac_loss:
+    description: "Sound the buzzer when AC power is lost"
+    type: bool
+
+image: "ghcr.io/iu1jvo/ha-addon-x728/{arch}"
