@@ -5,8 +5,8 @@
         "title": " Setup del UPS X728 Geekworm",
         "description": "Connessione al demone add-on X728 in esecuzione sul dispositivo corrente.",
         "data": {
-          "host": "host del Demone",
-          "port": "porta del Daemone",
+          "host": "host Demone",
+          "port": "porta Daemone",
           "scan_interval": "Intervallo di aggiornamento (secondi)"
         }
       }
@@ -24,8 +24,8 @@
       "init": {
         "title": "Opzioni del UPS X728",
         "data": {
-          "host": "host del Demone",
-          "port": "porta del Daemone",
+          "host": "host Demone",
+          "port": "porta Daemone",
           "scan_interval": "Intervallo di aggiornamento (secondi)"
         }
       }
