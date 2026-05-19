@@ -29,8 +29,10 @@ jobs:
         include:
           - arch: aarch64
             platform: linux/arm64
+            base_image: ghcr.io/home-assistant/base-python:3.13-alpine
           - arch: armv7
             platform: linux/arm/v7
+            base_image: ghcr.io/home-assistant/base-python:3.13-alpine
 
     steps:
       - name: Resolve tag name
@@ -65,13 +67,13 @@ jobs:
         with:
           context: ./ha-addon-x728
           file: ./ha-addon-x728/Dockerfile
-          platforms: linux/arm64,linux/arm/v7
+          platforms: ${{ matrix.platform }}
           push: true
           build-args: |
-            BUILD_FROM=ghcr.io/home-assistant/base-python:3.13-alpine3.21
+            BUILD_FROM=${{ matrix.base_image }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ha-addon-x728:${{ steps.tag.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest
+            ghcr.io/${{ github.repository_owner }}/ha-addon-x728:${{ steps.tag.outputs.version }}-${{ matrix.arch }}
+            ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest-${{ matrix.arch }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
           labels: |
@@ -81,10 +83,49 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
+  create-manifest:
+    name: Create multi-arch manifest
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Resolve tag name
+        id: tag
+        run: |
+          TAG="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push version manifest
+        run: |
+          docker buildx build --push \
+            --tag ghcr.io/${{ github.repository_owner }}/ha-addon-x728:${{ steps.tag.outputs.version }} \
+            --manifest ghcr.io/${{ github.repository_owner }}/ha-addon-x728:${{ steps.tag.outputs.version }}-aarch64 \
+            --manifest ghcr.io/${{ github.repository_owner }}/ha-addon-x728:${{ steps.tag.outputs.version }}-armv7 \
+            oci-layout://
+
+      - name: Create and push latest manifest
+        run: |
+          docker buildx build --push \
+            --tag ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest \
+            --manifest ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest-aarch64 \
+            --manifest ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest-armv7 \
+            oci-layout://
+
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: create-manifest
     permissions:
       contents: write
 
@@ -126,7 +167,8 @@ jobs:
             ## Docker images
             | Architecture | Image |
             |---|---|
-            | aarch64 | `ghcr.io/${{ env.IMAGE_NAME }}/aarch64:${{ steps.tag.outputs.tag }}` |
-            | armv7   | `ghcr.io/${{ env.IMAGE_NAME }}/armv7:${{ steps.tag.outputs.tag }}` |
+            | aarch64 | `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}-aarch64` |
+            | armv7   | `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}-armv7` |
+            | **multi-arch** | `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}` |
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
