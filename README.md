@@ -135,8 +135,18 @@ logger:
 
 ### Add-On
 1. Fork and clone the repository.
-2. Open in VSCode and choose to open in devcontainer. Must have VSCode 
-
+2. Open in VSCode. To test the add-on, there are two way:
+    1. Chose to open in a dev container, the integation will start and run in simulation mode.
+    2. run the add-on script in a terminal:
+        ```bash
+        cd ha-addon-x728
+        SHUTDOWN_VOLTAGE=3.5 SHUTDOWN_CAPACITY=10 DAEMON_PORT=8099 python3 x728_daemon.py
+        ```
+3. Test the exposed API REST in an another terminal window:
+    ```bash
+    curl -s http://localhost:8099/api/x728 | python3 -m json.tool
+    ```
+    or opening `http://localhost:<DAEMON_PORT>` in a browser.
 
 ## Credits
 
