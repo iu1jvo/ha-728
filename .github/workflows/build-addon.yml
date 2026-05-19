@@ -30,9 +30,6 @@ jobs:
           - arch: aarch64
             platform: linux/arm64
             base_image: ghcr.io/home-assistant/base-python:3.12-alpine3.22
-          - arch: armv7
-            platform: linux/arm/v7
-            base_image: ghcr.io/home-assistant/base-python:3.12-alpine3.22
 
     steps:
       - name: Resolve tag name
@@ -119,7 +116,6 @@ jobs:
           docker buildx build --push \
             --tag ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest \
             --manifest ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest-aarch64 \
-            --manifest ghcr.io/${{ github.repository_owner }}/ha-addon-x728:latest-armv7 \
             oci-layout://
 
   release:
@@ -168,7 +164,6 @@ jobs:
             | Architecture | Image |
             |---|---|
             | aarch64 | `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}-aarch64` |
-            | armv7   | `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}-armv7` |
             | **multi-arch** | `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}` |
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
