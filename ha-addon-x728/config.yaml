@@ -24,13 +24,13 @@ options:
   hw_version: "v2.1"
   daemon_port: 8099
   poll_interval: 10
-  shutdown_voltage: 3.00
+  shutdown_voltage: 3.0
   shutdown_capacity: 5
   shutdown_delay: 10
   buzzer_on_ac_loss: true
 
 schema:
-  hw_version: list("v1.x / v2.0","v2.1","v2.2","v2.3")
+  hw_version: list(v1.x/v2.0|v2.1|v2.2|v2.3)
   daemon_port: int(1024,65535)
   poll_interval: int(5,120)
   shutdown_voltage: float(0.0,4.5)
