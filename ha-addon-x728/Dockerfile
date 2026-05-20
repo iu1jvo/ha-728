@@ -2,18 +2,23 @@ ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base-python:3.12-alpine3.22
 FROM $BUILD_FROM
 
 # Install library packages
-RUN apk add --no-cache \
+UN apk add --no-cache \
     python3 \
     py3-pip \
     py3-smbus \
-    i2c-tools \
-    libgpiod
+    py3-gpiod \
+    i2c-tools
+
 # Install Python packages
-RUN pip3 install --no-cache-dir smbus2 python-periphery rpi-lgpio
+RUN pip3 install --no-cache-dir smbus2
 
-# Create symlink for lgpio to maintain compatibility with older versions of rpi_lgpio
-RUN python3 -c "import os, site; d=site.getsitepackages()[0]; os.symlink(os.path.join(d, 'rpi_lgpio'), os.path.join(d, 'lgpio'))"
-
+# Create a compatibility wrapper for lgpio, which is used by the original x728_daemon.py.
+RUN python3 -c " \
+import site, os; \
+path = os.path.join(site.getsitepackages()[0], 'lgpio.py'); \
+f = open(path, 'w'); \
+f.write('import gpiod\n\nclass Wrapper:\n    def __init__(self, num):\n        self.chip = gpiod.Chip(f\"/dev/gpiochip{num}\")\n\ndef gpiochip_open(num):\n    return Wrapper(num)\n'); \
+f.close()"
 
 WORKDIR /app
 COPY x728_daemon.py .
