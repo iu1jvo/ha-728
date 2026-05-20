@@ -14,7 +14,7 @@ RUN apk add --no-cache \
     libgpiod \
     libgpiod-dev \
     swig \
-    && pip3 install --no-cache-dir smbus2 lgpio
+    && pip3 install --no-cache-dir smbus2 rpi-lgpio
 
 
 WORKDIR /app
