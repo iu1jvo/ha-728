@@ -41,6 +41,9 @@ SHUTDOWN_DELAY = int(os.environ.get("SHUTDOWN_DELAY", "10"))         # seconds
 
 BUZZER_ON_AC_LOSS = os.environ.get("BUZZER_ON_AC_LOSS", "true").lower() == "true"
 
+# Lgpio chip handle (initialized in gpio_setup)
+_hw = {"chip": None}
+
 # GPIO pin selection based on hardware version
 if HW_VERSION.startswith("v1") or HW_VERSION == "v2.0":
     GPIO_SHUTDOWN = 13
@@ -67,7 +70,7 @@ log = logging.getLogger("x728")
 # Import RPi.GPIO gracefully (may not be available in dev/test environments)
 # ---------------------------------------------------------------------------
 try:
-    from RPi import GPIO
+    import lgpio
     import smbus
     GPIO_AVAILABLE = True
 except (ImportError, RuntimeError):
@@ -95,16 +98,16 @@ current_state: dict = {
 # ---------------------------------------------------------------------------
 
 def gpio_setup():
-    """Initialise GPIO pins."""
-    GPIO.setwarnings(False)
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(GPIO_PLD,    GPIO.IN)
-    GPIO.setup(GPIO_BUZZER, GPIO.OUT)
-    GPIO.setup(GPIO_BOOT,   GPIO.OUT)
-    GPIO.setup(GPIO_SHUTDOWN, GPIO.OUT)
-    GPIO.output(GPIO_BOOT, GPIO.HIGH)   # signal: system is up
-    GPIO.output(GPIO_BUZZER, GPIO.LOW)
-    GPIO.output(GPIO_SHUTDOWN, GPIO.LOW)
+    """Initialise GPIO pins via lgpio."""
+    _hw["chip"] = lgpio.gpiochip_open(0)
+    lgpio.gpio_claim_input(_hw["chip"], GPIO_PLD)
+    lgpio.gpio_claim_output(_hw["chip"], GPIO_BUZZER, 0)
+    lgpio.gpio_claim_output(_hw["chip"], GPIO_BOOT, 0)
+    lgpio.gpio_claim_output(_hw["chip"], GPIO_SHUTDOWN, 0)
+    lgpio.gpio_write(_hw["chip"], GPIO_BOOT, 1)  # signal: system is up
+    lgpio.gpio_write(_hw["chip"], GPIO_BUZZER, 0)
+    lgpio.gpio_write(_hw["chip"], GPIO_SHUTDOWN, 0)
+
     log.info("GPIO configured. Shutdown pin: GPIO%d", GPIO_SHUTDOWN)
 
 
@@ -133,9 +136,9 @@ def do_shutdown():
     # 2. Wait for OS to settle, then pulse the UPS shutdown pin
     time.sleep(SHUTDOWN_DELAY)
     if GPIO_AVAILABLE:
-        GPIO.output(GPIO_SHUTDOWN, GPIO.HIGH)
+        lgpio.gpio_write(_hw["chip"], GPIO_SHUTDOWN, 1)
         time.sleep(3)
-        GPIO.output(GPIO_SHUTDOWN, GPIO.LOW)
+        lgpio.gpio_write(_hw["chip"], GPIO_SHUTDOWN, 0)
 
 
 def buzzer_beep(count: int = 1, on_ms: int = 100, off_ms: int = 100):
@@ -143,9 +146,9 @@ def buzzer_beep(count: int = 1, on_ms: int = 100, off_ms: int = 100):
     if not GPIO_AVAILABLE:
         return
     for _ in range(count):
-        GPIO.output(GPIO_BUZZER, GPIO.HIGH)
+        lgpio.gpio_write(_hw["chip"], GPIO_BUZZER, 1)
         time.sleep(on_ms / 1000)
-        GPIO.output(GPIO_BUZZER, GPIO.LOW)
+        lgpio.gpio_write(_hw["chip"], GPIO_BUZZER, 0)
         time.sleep(off_ms / 1000)
 
 
@@ -169,7 +172,11 @@ def monitor_loop():
         try:
             voltage = read_voltage(bus) if bus else None
             capacity = read_capacity(bus) if bus else None
-            ac_present = not bool(GPIO.input(GPIO_PLD)) if GPIO_AVAILABLE else None
+            ac_present = (
+                not bool(lgpio.gpio_read(_hw["chip"], GPIO_PLD))
+                if GPIO_AVAILABLE
+                else None
+            )
 
             # Derive states
             battery_low = False
@@ -264,5 +271,5 @@ if __name__ == "__main__":
         server.serve_forever()
     except KeyboardInterrupt:
         log.info("Daemon stopped.")
-        if GPIO_AVAILABLE:
-            GPIO.cleanup()
+        if GPIO_AVAILABLE and _hw["chip"] is not None:
+            lgpio.gpiochip_close(_hw["chip"])
