@@ -72,10 +72,10 @@ log = logging.getLogger("x728")
 # ---------------------------------------------------------------------------
 try:
     import lgpio
-    import smbus
+    import smbus2
     GPIO_AVAILABLE = True
 except (ImportError, RuntimeError):
-    log.warning("RPi.GPIO / smbus not available – running in SIMULATION mode")
+    log.warning("RPi.GPIO / smbus2 not available – running in SIMULATION mode")
     GPIO_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ def monitor_loop():
     if GPIO_AVAILABLE:
         gpio_setup()
         try:
-            bus = smbus.SMBus(I2C_BUS)
+            bus = smbus2.SMBus(I2C_BUS)
         except Exception as e:  # pylint: disable=broad-except
             log.error("Cannot open I2C bus: %s", e)
 

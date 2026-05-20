@@ -16,6 +16,7 @@ RUN apk add --no-cache \
     swig \
     && pip3 install --no-cache-dir smbus2 lgpio
 
+
 WORKDIR /app
 COPY x728_daemon.py .
 COPY run.sh /run.sh
