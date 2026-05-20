@@ -67,10 +67,10 @@ log = logging.getLogger("x728")
 # Import RPi.GPIO gracefully (may not be available in dev/test environments)
 # ---------------------------------------------------------------------------
 try:
-    import RPi.GPIO as GPIO
+    from RPi import GPIO
     import smbus
     GPIO_AVAILABLE = True
-except ImportError:
+except (ImportError, RuntimeError):
     log.warning("RPi.GPIO / smbus not available – running in SIMULATION mode")
     GPIO_AVAILABLE = False
 
@@ -109,12 +109,14 @@ def gpio_setup():
 
 
 def read_voltage(bus) -> float:
+    """Read battery voltage from MAX17040 via I2C."""
     raw = bus.read_word_data(I2C_ADDR, 2)
     swapped = struct.unpack("<H", struct.pack(">H", raw))[0]
     return round(swapped * 1.25 / 1000 / 16, 3)
 
 
 def read_capacity(bus) -> int:
+    """Read battery capacity from MAX17040 via I2C."""
     raw = bus.read_word_data(I2C_ADDR, 4)
     swapped = struct.unpack("<H", struct.pack(">H", raw))[0]
     return int(swapped / 256)
@@ -125,8 +127,8 @@ def do_shutdown():
     log.warning("SHUTDOWN SEQUENCE STARTED")
     # 1. Ask HA OS to shut down gracefully
     try:
-        subprocess.run(["ha", "os", "shutdown"], timeout=30)
-    except Exception as e:
+        subprocess.run(["ha", "os", "shutdown"], timeout=30, check=False)
+    except Exception as e:  # pylint: disable=broad-except
         log.error("Failed to call 'ha os shutdown': %s", e)
     # 2. Wait for OS to settle, then pulse the UPS shutdown pin
     time.sleep(SHUTDOWN_DELAY)
@@ -137,6 +139,7 @@ def do_shutdown():
 
 
 def buzzer_beep(count: int = 1, on_ms: int = 100, off_ms: int = 100):
+    """Sound the buzzer for the given number of pulses."""
     if not GPIO_AVAILABLE:
         return
     for _ in range(count):
@@ -157,7 +160,7 @@ def monitor_loop():
         gpio_setup()
         try:
             bus = smbus.SMBus(I2C_BUS)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             log.error("Cannot open I2C bus: %s", e)
 
     shutdown_pending = False
@@ -204,7 +207,7 @@ def monitor_loop():
                 t = threading.Thread(target=do_shutdown, daemon=True)
                 t.start()
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             log.error("Monitor error: %s", e)
             with state_lock:
                 current_state["error"] = str(e)
@@ -219,10 +222,11 @@ def monitor_loop():
 class X728Handler(BaseHTTPRequestHandler):
     """Minimal HTTP handler exposing /api/x728."""
 
-    def log_message(self, fmt, *args):
+    def log_message(self, fmt, *args):  # pylint: disable=arguments-differ
         pass  # suppress per-request access log noise
 
-    def do_GET(self):
+    def do_GET(self):   # pylint: disable=invalid-name
+        """Handle GET requests."""
         if self.path == "/api/x728":
             with state_lock:
                 payload = json.dumps(current_state).encode()
